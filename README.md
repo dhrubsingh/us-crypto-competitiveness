@@ -52,4 +52,6 @@ Every chart has a CSV download; the full datasets live under `/data` as flat JSO
 schemas. Sources, definitions and known limitations are documented on the methodology page —
 read it before citing.
 
+Repo: https://github.com/dhrubsingh/us-crypto-competitiveness · Live: https://dashboard-ten-orpin-60.vercel.app
+
 MIT licensed. Not investment advice.
