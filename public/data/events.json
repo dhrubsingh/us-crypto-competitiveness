@@ -1,0 +1,79 @@
+[
+  {
+    "date": "2025-03-17",
+    "title": "CME lists Solana futures",
+    "description": "CME Group launches SOL and Micro SOL futures, its first new crypto asset since Ether.",
+    "category": "launch",
+    "source": "https://www.cmegroup.com/media-room/press-releases/2025/3/17/cme_group_launches_solana_futures.html"
+  },
+  {
+    "date": "2025-05-19",
+    "title": "CME lists XRP futures",
+    "description": "CME Group adds XRP and Micro XRP futures to its crypto suite.",
+    "category": "launch",
+    "source": "https://www.cmegroup.com/markets/cryptocurrencies/xrp.html"
+  },
+  {
+    "date": "2025-06-26",
+    "title": "Coinbase self-certifies US perpetual-style futures",
+    "description": "Coinbase Derivatives files CFTC self-certifications for nano BTC and ETH perpetual-style futures — 5-year contracts with a funding-rate mechanism, the first US answer to offshore perps.",
+    "category": "rulemaking",
+    "source": "https://www.coinbase.com/blog/coming-july-21-us-perpetual-style-futures"
+  },
+  {
+    "date": "2025-07-21",
+    "title": "Coinbase Derivatives perp-style futures go live",
+    "description": "Nano BTC and ETH perpetual-style futures begin trading 24/7 on the CFTC-regulated Coinbase Derivatives Exchange.",
+    "category": "launch",
+    "source": "https://www.coinbase.com/blog/perpetual-futures-have-arrived-in-the-us"
+  },
+  {
+    "date": "2025-10-13",
+    "title": "CME lists options on SOL and XRP futures",
+    "description": "Options on SOL, Micro SOL, XRP and Micro XRP futures begin trading.",
+    "category": "launch",
+    "source": "https://www.cmegroup.com/media-room/press-releases/2025/9/17/cme_group_to_launchoptionsonsolanaandxrpfutures.html"
+  },
+  {
+    "date": "2025-12-15",
+    "title": "CME lists spot-quoted XRP and SOL futures",
+    "description": "CME expands crypto derivatives with spot-quoted contracts aimed at retail-sized participants.",
+    "category": "launch",
+    "source": "https://www.coindesk.com/markets/2025/12/15/cme-group-expands-crypto-derivatives-with-spot-quoted-xrp-and-solana-futures"
+  },
+  {
+    "date": "2026-02-19",
+    "title": "CME announces 24/7 crypto trading",
+    "description": "CME Group sets May 29 launch for around-the-clock cryptocurrency futures and options trading, pending regulatory review.",
+    "category": "rulemaking",
+    "source": "https://www.cmegroup.com/media-room/press-releases/2026/2/19/cme_group_to_launch247cryptocurrencyfuturesandoptionstradingonma.html"
+  },
+  {
+    "date": "2026-05-29",
+    "title": "CFTC approves Kalshi BTCPERP",
+    "description": "The CFTC issues an Order of Approval for KalshiEX's BTCPERP — the first true perpetual contract approved on a US-regulated exchange (press release 9240-26).",
+    "category": "approval",
+    "source": "https://www.cftc.gov/PressRoom/PressReleases/9240-26"
+  },
+  {
+    "date": "2026-05-29",
+    "title": "CME 24/7 crypto trading goes live",
+    "description": "CME cryptocurrency futures and options begin trading around the clock, matching offshore market hours for the first time.",
+    "category": "launch",
+    "source": "https://www.cmegroup.com/media-room/press-releases/2026/6/01/cme_group_announceslaunchof247cryptocurrencyfuturesandoptionstra.html"
+  },
+  {
+    "date": "2026-06-01",
+    "title": "Kraken launches US perpetual futures",
+    "description": "Kraken brings CFTC-regulated perpetual futures to US traders on Kraken Pro, listed on Bitnomial — the triple-licensed DCM/DCO/FCM its parent acquired for $550M in April 2026.",
+    "category": "launch",
+    "source": "https://blog.kraken.com/product/kraken-derivatives-us/first-cftc-regulated-perpetual-futures-for-us-traders"
+  },
+  {
+    "date": "2026-06-03",
+    "title": "Kalshi BTCPERP begins trading",
+    "description": "Kalshi's bitcoin perpetual goes live with zero launch-period fees; notional volume tops $1B in the first week and $5.5B within two.",
+    "category": "launch",
+    "source": "https://cryptobriefing.com/kalshi-crypto-perpetual-futures-us-launch/"
+  }
+]
