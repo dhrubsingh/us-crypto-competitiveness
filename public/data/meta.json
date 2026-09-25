@@ -1,45 +1,45 @@
 {
-  "generatedAt": "2026-09-24T04:57:37.925Z",
-  "lastIngestDate": "2026-09-24",
+  "generatedAt": "2026-09-25T05:02:50.381Z",
+  "lastIngestDate": "2026-09-25",
   "sources": {
     "binance": {
-      "lastSuccess": "2026-09-24T04:57:19.094Z"
+      "lastSuccess": "2026-09-25T05:02:27.720Z"
     },
     "bybit": {
-      "lastSuccess": "2026-09-24T04:57:20.304Z"
+      "lastSuccess": "2026-09-25T05:02:28.966Z"
     },
     "okx": {
-      "lastSuccess": "2026-09-24T04:57:20.991Z"
+      "lastSuccess": "2026-09-25T05:02:29.411Z"
     },
     "deribit": {
-      "lastSuccess": "2026-09-24T04:57:21.283Z"
+      "lastSuccess": "2026-09-25T05:02:29.948Z"
     },
     "hyperliquid": {
-      "lastSuccess": "2026-09-24T04:57:23.410Z"
+      "lastSuccess": "2026-09-25T05:02:30.746Z"
     },
     "kraken": {
-      "lastSuccess": "2026-09-24T04:57:25.151Z"
+      "lastSuccess": "2026-09-25T05:02:33.170Z"
     },
     "cme": {
-      "lastSuccess": "2026-09-24T04:57:25.351Z"
+      "lastSuccess": "2026-09-25T05:02:33.444Z"
     },
     "cde": {
-      "lastSuccess": "2026-09-24T04:57:25.499Z"
+      "lastSuccess": "2026-09-25T05:02:33.851Z"
     },
     "kalshi": {
-      "lastSuccess": "2026-09-24T04:57:25.776Z"
+      "lastSuccess": "2026-09-25T05:02:34.712Z"
     },
     "kraken_us": {
-      "lastSuccess": "2026-09-24T04:57:26.673Z"
+      "lastSuccess": "2026-09-25T05:02:36.039Z"
     },
     "cftc": {
-      "lastSuccess": "2026-09-24T04:57:27.124Z"
+      "lastSuccess": "2026-09-25T05:02:37.283Z"
     },
     "totals": {
-      "lastSuccess": "2026-09-24T04:57:32.595Z"
+      "lastSuccess": "2026-09-25T05:02:44.672Z"
     },
     "listings": {
-      "lastSuccess": "2026-09-24T04:57:37.859Z"
+      "lastSuccess": "2026-09-25T05:02:50.306Z"
     }
   }
 }
