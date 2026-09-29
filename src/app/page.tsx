@@ -9,17 +9,38 @@ import {
   latestDepth,
   loadObservatory,
   oiShareSeries,
+  onshoreTotalVolumeByVenue,
+  onshoreVolumeByVenue,
   smooth,
+  VenueSeriesPoint,
   volumeShareSeries,
 } from '../lib/observatory/metrics'
 import { VENUES, VenueId } from '../lib/observatory/types'
 
 export const dynamic = 'force-static'
 
+/**
+ * 7-day trailing mean per onshore venue, on exactly chart 1.1's date axis
+ * (days with no onshore rows count as zero there too), so the venue stack
+ * sums to chart 1.1's onshore band.
+ */
+function smoothByVenue(raw: VenueSeriesPoint[], dates: string[], days = 7): AssetSlice['onshoreByVenue'] {
+  const byDate = new Map(raw.map((p) => [p.date, p.values]))
+  const series = dates.map((date) => ({ date, values: byDate.get(date) ?? {} }))
+  return series
+    .map((p, i) => {
+      const window = series.slice(Math.max(0, i - days + 1), i + 1)
+      const avg = (v: VenueId) => Math.round(window.reduce((s, w) => s + (w.values[v] ?? 0), 0) / window.length)
+      return { d: p.date, cme: avg('cme'), cde: avg('cde'), kalshi: avg('kalshi'), krakenUs: avg('kraken_us') }
+    })
+    .slice(Math.min(days - 1, Math.max(series.length - 1, 0)))
+}
+
 function buildSlice(asset: AssetFilter): AssetSlice {
   const data = loadObservatory()
 
-  const share = smooth(volumeShareSeries(data, asset), 7)
+  const rawShare = volumeShareSeries(data, asset)
+  const share = smooth(rawShare, 7)
   const oiShare = oiShareSeries(data, asset)
   const funding = fundingSeries(data, asset)
   const basis = cmeBasisSeries(data, asset)
@@ -70,6 +91,10 @@ function buildSlice(asset: AssetFilter): AssetSlice {
   return {
     volumeShare: share.map((p) => ({ d: p.date, share: round(p.sharePct, 2), on: p.onshoreUsd, off: p.offshoreUsd })),
     oiShare: oiShare.map((p) => ({ d: p.date, share: round(p.sharePct, 2), on: p.onshoreUsd, off: p.offshoreUsd })),
+    onshoreByVenue: smoothByVenue(
+      onshoreVolumeByVenue(data, asset),
+      rawShare.map((p) => p.date)
+    ),
     funding: (() => {
       // display composites are 7-day averaged (raw daily means annualize
       // single 8h prints into chart-breaking spikes); per-venue stays raw
@@ -98,12 +123,17 @@ function round(v: number | null, digits: number): number | null {
 function buildTotalSlice(): AssetSlice {
   const data = loadObservatory()
   const majors = buildSlice('ALL')
-  const share = smooth(totalVolumeShareSeries(data), 7)
+  const rawShare = totalVolumeShareSeries(data)
+  const share = smooth(rawShare, 7)
   const oiShare = totalOiShareSeries(data)
   return {
     ...majors,
     volumeShare: share.map((p) => ({ d: p.date, share: round(p.sharePct, 2), on: p.onshoreUsd, off: p.offshoreUsd })),
     oiShare: oiShare.map((p) => ({ d: p.date, share: round(p.sharePct, 2), on: p.onshoreUsd, off: p.offshoreUsd })),
+    onshoreByVenue: smoothByVenue(
+      onshoreTotalVolumeByVenue(data),
+      rawShare.map((p) => p.date)
+    ),
   }
 }
 
@@ -153,11 +183,19 @@ export default function Page() {
     updated: h.asOf,
     headline: {
       volumeShare7dPct: round(h.volumeShare7dPct, 1),
-      volumeShareDelta30dPct: round(h.volumeShareDelta30dPct, 1),
       onshoreOiUsd: h.onshoreOiUsd,
       oiSharePct: round(h.oiSharePct, 1),
-      fundingDivergencePct: round(h.fundingDivergencePct, 1),
+      usFundingPremiumPct: round(h.usFundingPremiumPct, 1),
       executionGapBps: round(h.executionGapBps, 2),
+      onshoreCost1mBps: round(h.onshoreCost1mBps, 4),
+      offshoreCost1mBps: round(h.offshoreCost1mBps, 4),
+      migration: h.migration && {
+        baselineDate: h.migration.baselineDate,
+        baselineSharePct: round(h.migration.baselineSharePct, 1)!,
+        onshoreVolChangePct: round(h.migration.onshoreVolChangePct, 0)!,
+        offshoreVolChangePct: round(h.migration.offshoreVolChangePct, 0)!,
+      },
+      newPerpShareOfOnshorePct: round(h.newPerpShareOfOnshorePct, 0),
     },
     slices: {
       ALL: buildSlice('ALL'),

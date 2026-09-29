@@ -134,7 +134,17 @@ export default function Methodology() {
         notional walking the book, plus quoted spread and resting depth within ±50 bps of mid. The dashboard
         presents each group&rsquo;s <em>best</em> book (the venue a cost-sensitive trader would route to) and
         the group&rsquo;s summed depth; per-venue snapshots are in the raw dataset. Contract-unit books (CDE,
-        Kalshi) are converted to implied coin prices via contract size.
+        Kalshi) are converted to implied coin prices via contract size. The headline dollar figure is the
+        best book&rsquo;s $1M BTC fill cost converted from basis points (1 bp on $1M = $100).
+      </P>
+      <P>
+        <strong className="text-[var(--ink)]">Headline summary.</strong> The &ldquo;What the data shows&rdquo;
+        box is generated from the data on every build. The share comparison uses the 7-day-average onshore
+        share today versus 90 days earlier; &ldquo;genuine migration&rdquo; means onshore 7-day-average volume
+        rose over that window, as opposed to the share rising only because offshore volume fell faster. The
+        new-entrant share is Kalshi plus Kraken US volume as a fraction of onshore volume over the trailing 30
+        days. The US funding premium is the onshore composite minus the offshore composite (7-day means,
+        annualized): positive means a perp long pays more to hold onshore.
       </P>
 
       <H2>The listing gap</H2>

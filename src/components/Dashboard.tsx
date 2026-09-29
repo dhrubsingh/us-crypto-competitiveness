@@ -17,6 +17,8 @@ export interface SeriesPointT {
 export interface AssetSlice {
   volumeShare: { d: string; share: number | null; on: number; off: number }[]
   oiShare: { d: string; share: number | null; on: number; off: number }[]
+  /** 7-day average onshore volume per venue, USD. */
+  onshoreByVenue: { d: string; cme: number; cde: number; kalshi: number; krakenUs: number }[]
   funding: {
     d: string
     off: number | null
@@ -33,11 +35,19 @@ export interface DashboardPayload {
   updated: string
   headline: {
     volumeShare7dPct: number | null
-    volumeShareDelta30dPct: number | null
     onshoreOiUsd: number | null
     oiSharePct: number | null
-    fundingDivergencePct: number | null
+    usFundingPremiumPct: number | null
     executionGapBps: number | null
+    onshoreCost1mBps: number | null
+    offshoreCost1mBps: number | null
+    migration: {
+      baselineDate: string
+      baselineSharePct: number
+      onshoreVolChangePct: number
+      offshoreVolChangePct: number
+    } | null
+    newPerpShareOfOnshorePct: number | null
   }
   slices: Record<'ALL' | 'BTC' | 'ETH' | 'SOL' | 'TOTAL', AssetSlice>
   events: { date: string; title: string; description: string; category: string; source: string }[]
@@ -216,6 +226,111 @@ function CategoryComposition({ gap }: { gap: DashboardPayload['gap'] }) {
   )
 }
 
+/** Dollar cost of a $1M market order from a bps fill cost. */
+function fillCostUsd(bps: number): string {
+  const usd = bps * 100
+  return usd < 1 ? 'under $1' : `$${Math.round(usd).toLocaleString()}`
+}
+
+/**
+ * The takeaway, written from the data: where the share stands, whether the
+ * move came from onshore growth or offshore decline, who is driving it, and
+ * what access still costs. Every clause drops out if its input is missing.
+ */
+function KeyFindings({ h }: { h: DashboardPayload['headline'] }) {
+  const m = h.migration
+  const sentences: React.ReactNode[] = []
+
+  if (h.volumeShare7dPct != null) {
+    const moved = m ? h.volumeShare7dPct - m.baselineSharePct : 0
+    sentences.push(
+      <>
+        CFTC-regulated venues now carry{' '}
+        <strong className="font-semibold text-[var(--ink)]">{fmtPct(h.volumeShare7dPct)}</strong> of BTC, ETH and SOL
+        derivatives volume
+        {m && Math.abs(moved) >= 0.5 ? (
+          <>
+            , {moved > 0 ? 'up' : 'down'} from {fmtPct(m.baselineSharePct)} on {fmtDate(m.baselineDate)}
+          </>
+        ) : m ? (
+          <>, little changed from {fmtPct(m.baselineSharePct)} on {fmtDate(m.baselineDate)}</>
+        ) : null}
+        .
+      </>
+    )
+    if (m && Math.abs(moved) >= 0.5) {
+      const on = fmtSigned(m.onshoreVolChangePct, 0, '%')
+      const off = fmtSigned(m.offshoreVolChangePct, 0, '%')
+      sentences.push(
+        moved > 0 && m.onshoreVolChangePct > 0 ? (
+          <>
+            That is genuine migration, not a shrinking denominator: onshore volume grew{' '}
+            <strong className="font-semibold text-[var(--ink)]">{m.onshoreVolChangePct.toFixed(0)}%</strong> while
+            offshore moved {off}.
+          </>
+        ) : moved > 0 ? (
+          <>
+            But the gain is a denominator effect: onshore volume fell {on.replace('−', '')} and offshore fell faster (
+            {off}).
+          </>
+        ) : (
+          <>
+            Onshore volume moved {on} against {off} offshore.
+          </>
+        )
+      )
+    }
+  }
+
+  if (h.newPerpShareOfOnshorePct != null && h.newPerpShareOfOnshorePct >= 1) {
+    sentences.push(
+      <>
+        Perps from the 2026 entrants, Kalshi and Kraken US, account for{' '}
+        <strong className="font-semibold text-[var(--ink)]">{fmtPct(h.newPerpShareOfOnshorePct, 0)}</strong> of
+        onshore volume over the past 30 days (chart 1.3).
+      </>
+    )
+  }
+
+  if (h.onshoreCost1mBps != null && h.offshoreCost1mBps != null) {
+    const p = h.usFundingPremiumPct
+    sentences.push(
+      <>
+        Access still costs more onshore: a $1M BTC market order costs about{' '}
+        <strong className="font-semibold text-[var(--ink)]">{fillCostUsd(h.onshoreCost1mBps)}</strong> on the best US
+        book versus {fillCostUsd(h.offshoreCost1mBps)} offshore
+        {p != null && Math.abs(p) >= 0.1 ? (
+          <>
+            , and holding a perp long costs {p > 0 ? '' : 'about '}
+            <strong className="font-semibold text-[var(--ink)]">
+              {Math.abs(p).toFixed(1)} pp a year {p > 0 ? 'more' : 'less'}
+            </strong>{' '}
+            in funding
+          </>
+        ) : null}
+        .
+      </>
+    )
+  }
+
+  if (!sentences.length) return null
+  return (
+    <div className="mt-8 max-w-[760px] border-l-[3px] border-[var(--accent)] bg-[var(--surface-2)] px-5 py-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-3)]">
+        What the data shows
+      </div>
+      <p className="mt-1.5 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
+        {sentences.map((node, i) => (
+          <span key={i}>
+            {i > 0 && ' '}
+            {node}
+          </span>
+        ))}
+      </p>
+    </div>
+  )
+}
+
 function SectionHead({ num, title, dek }: { num: string; title: string; dek: string }) {
   return (
     <div className="mt-16 border-t border-[var(--border-strong)] pt-5">
@@ -263,15 +378,17 @@ export default function Dashboard({ payload }: { payload: DashboardPayload }) {
         </div>
       </div>
 
+      <KeyFindings h={h} />
+
       {/* KPI row */}
-      <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-7 md:grid-cols-4">
+      <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 md:grid-cols-5">
         <StatTile
           label="Onshore share of volume"
           value={h.volumeShare7dPct == null ? '—' : fmtPct(h.volumeShare7dPct)}
           sub={
-            h.volumeShareDelta30dPct == null
+            h.volumeShare7dPct == null || h.migration == null
               ? '7-day average'
-              : `${fmtSigned(h.volumeShareDelta30dPct, 1, ' pp')} vs 30 days ago · 7-day avg`
+              : `${fmtSigned(h.volumeShare7dPct - h.migration.baselineSharePct, 1, ' pp')} vs ${fmtDate(h.migration.baselineDate)} · 7-day avg`
           }
         />
         <StatTile
@@ -285,9 +402,22 @@ export default function Dashboard({ payload }: { payload: DashboardPayload }) {
           sub="CFTC weekly + venue-reported daily"
         />
         <StatTile
-          label="Funding divergence"
-          value={h.fundingDivergencePct == null ? '—' : fmtSigned(h.fundingDivergencePct, 1, ' pp')}
-          sub="offshore minus onshore, annualized · 7-day avg"
+          label="US funding premium"
+          value={h.usFundingPremiumPct == null ? '—' : fmtSigned(h.usFundingPremiumPct, 1, ' pp')}
+          sub={
+            h.usFundingPremiumPct == null
+              ? 'onshore minus offshore, annualized'
+              : `a perp long pays ${h.usFundingPremiumPct >= 0 ? 'more' : 'less'} per year onshore · 7-day avg`
+          }
+        />
+        <StatTile
+          label="Cost of a $1M BTC order"
+          value={h.onshoreCost1mBps == null ? '—' : fillCostUsd(h.onshoreCost1mBps)}
+          sub={
+            h.offshoreCost1mBps == null
+              ? 'best onshore book'
+              : `onshore vs ${fillCostUsd(h.offshoreCost1mBps)} offshore · best book each side`
+          }
         />
       </div>
 
@@ -381,6 +511,47 @@ export default function Dashboard({ payload }: { payload: DashboardPayload }) {
             values={[slice.oiShare.map((p) => p.on), slice.oiShare.map((p) => p.off)]}
             totalLabel="Total open interest"
             shareLabel="Onshore share"
+          />
+        )}
+      </ChartCard>
+
+      <ChartCard
+        num="1.3"
+        title="Who is growing onshore volume"
+        subtitle={`${assetLabel} · onshore volume by venue · 7-day trailing average · numbered flags = section 4`}
+        note={
+          tab === 'TOTAL'
+            ? 'The onshore band of chart 1.1 split by venue, across every listed contract. Kalshi and Kraken US are the perp venues that launched in 2026; CME and Coinbase Derivatives are the incumbents. Hover for each venue’s volume.'
+            : 'The onshore band of chart 1.1 split by venue. Kalshi (BTCPERP, from June 2026) and Kraken US (Bitnomial perps, from June 2026) are the new US perpetuals; CME and Coinbase Derivatives are the incumbents. Growth in the top two bands is new perp demand; growth in CME is institutions adding futures exposure. Hover for each venue’s volume.'
+        }
+        csv={{
+          filename: `onshore-volume-by-venue-${tab}.csv`,
+          build: () =>
+            toCsv(
+              ['date', 'cme_usd', 'coinbase_derivatives_usd', 'kraken_us_usd', 'kalshi_usd'],
+              slice.onshoreByVenue.map((p) => [p.d, p.cme, p.cde, p.krakenUs, p.kalshi])
+            ),
+        }}
+      >
+        {slice.onshoreByVenue.length < 2 ? (
+          <FirstDays rows={slice.volumeShare} />
+        ) : (
+          <StackedAreaChart
+            dates={slice.onshoreByVenue.map((p) => p.d)}
+            bands={[
+              { id: 'cme', label: 'CME', color: 'var(--cme)' },
+              { id: 'cde', label: 'Coinbase Derivatives', color: 'var(--cde)' },
+              { id: 'krakenUs', label: 'Kraken US', color: 'var(--kraken-us)' },
+              { id: 'kalshi', label: 'Kalshi', color: 'var(--kalshi)' },
+            ]}
+            values={[
+              slice.onshoreByVenue.map((p) => p.cme),
+              slice.onshoreByVenue.map((p) => p.cde),
+              slice.onshoreByVenue.map((p) => p.krakenUs),
+              slice.onshoreByVenue.map((p) => p.kalshi),
+            ]}
+            events={chartEvents}
+            totalLabel="Onshore total"
           />
         )}
       </ChartCard>

@@ -199,7 +199,7 @@ export default function StackedAreaChart({
             right: tooltipFlip ? width - tooltipLeft + 12 : undefined,
           }}
         >
-          <div className="mb-1 text-[11px] text-[var(--ink-3)]">Week of {fmtDate(hoverDate)}</div>
+          <div className="mb-1 text-[11px] text-[var(--ink-3)]">{fmtDate(hoverDate)}</div>
           {bands.map((b, bi) => (
             <div key={b.id} className="flex items-center justify-between gap-4 py-px text-[12px]">
               <span className="inline-flex items-center gap-1.5 text-[var(--ink-2)]">

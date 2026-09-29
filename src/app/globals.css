@@ -2,7 +2,7 @@
 
 /* Research-publication palette: light surface, ink text, one accent family.
    Venue colors are fixed to entities (never rank): CME blue, Coinbase
-   Derivatives aqua, Kalshi violet; offshore venues always context-gray.
+   Derivatives aqua, Kalshi violet, Kraken US amber; offshore venues always context-gray.
    Palette validated with the dataviz six-checks script (light surface). */
 :root {
   --surface: #fcfcfb;
@@ -16,6 +16,7 @@
   --cme: #2a78d6;
   --cde: #1baf7a;
   --kalshi: #4a3aa7;
+  --kraken-us: #c8751a;
   --offshore: #a3a099;
   --offshore-line: #8a8781;
   --up: #0ca30c;

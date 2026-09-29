@@ -219,6 +219,20 @@ export function totalVolumeShareSeries(data: Observatory): SharePoint[] {
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 
+/** Daily venue-wide volume per onshore venue (all listed contracts). */
+export function onshoreTotalVolumeByVenue(data: Observatory): VenueSeriesPoint[] {
+  const byDate = new Map<string, Partial<Record<VenueId, number>>>()
+  for (const r of data.volumeTotal) {
+    if (VENUES[r.venue].region !== 'onshore') continue
+    const bucket = byDate.get(r.date) ?? {}
+    bucket[r.venue] = (bucket[r.venue] ?? 0) + r.valueUsd
+    byDate.set(r.date, bucket)
+  }
+  return [...byDate.entries()]
+    .map(([date, values]) => ({ date, values }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
 /**
  * Daily onshore share of venue-wide open interest. Offshore side requires
  * Binance, Bybit and OKX (the largest) to be present; onshore = weekly CFTC
@@ -341,24 +355,43 @@ export function latestDepth(data: Observatory): Record<Asset, DepthRow[]> {
 export interface Headline {
   asOf: string
   volumeShare7dPct: number | null
-  volumeShareDelta30dPct: number | null
   oiSharePct: number | null
   onshoreOiUsd: number | null
-  /** Offshore composite minus onshore composite funding, annualized percentage points. */
-  fundingDivergencePct: number | null
+  /** Onshore composite minus offshore composite funding, annualized percentage points (positive = US longs pay more). */
+  usFundingPremiumPct: number | null
   /** Cheapest onshore $1M fill cost minus cheapest offshore, bps. */
   executionGapBps: number | null
+  /** Cheapest $1M BTC market-order cost on each side, bps. */
+  onshoreCost1mBps: number | null
+  offshoreCost1mBps: number | null
+  /** What drove the share move: 7-day-average volumes now vs `baselineDate`. */
+  migration: {
+    baselineDate: string
+    baselineSharePct: number
+    onshoreVolChangePct: number
+    offshoreVolChangePct: number
+  } | null
+  /** Share of onshore volume on venues whose perps launched in 2026 (Kalshi, Kraken US), trailing 30 days. */
+  newPerpShareOfOnshorePct: number | null
 }
+
+/** Lookback for the headline's "what drove the move" comparison. */
+export const MIGRATION_LOOKBACK_DAYS = 90
 
 export function headline(data: Observatory): Headline {
   const share = smooth(volumeShareSeries(data, 'ALL'), 7)
   const latest = share[share.length - 1] ?? null
-  const prior30 = share[share.length - 31] ?? null
+  // Calendar lookback, not row offset: the series has missing days
+  const cutoff = latest
+    ? new Date(Date.parse(latest.date) - MIGRATION_LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10)
+    : ''
+  const baseline = [...share].reverse().find((p) => p.date <= cutoff) ?? null
+  const pctChange = (now: number, then: number) => ((now - then) / then) * 100
 
   const oiShare = oiShareSeries(data, 'ALL')
   const latestOi = oiShare[oiShare.length - 1] ?? null
 
-  // Divergence from 7-day means of each composite (matching the chart's
+  // Premium from 7-day means of each composite (matching the chart's
   // treatment — a single 8h funding print shouldn't set the headline)
   const funding = fundingSeries(data, 'ALL')
   const trailing7 = (pick: (f: FundingPoint) => number | null): number | null => {
@@ -367,25 +400,46 @@ export function headline(data: Observatory): Headline {
   }
   const off7 = trailing7((f) => f.offshorePct)
   const on7 = trailing7((f) => f.onshorePct)
-  const divergence = off7 != null && on7 != null ? off7 - on7 : null
+  const premium = off7 != null && on7 != null ? on7 - off7 : null
 
   const depth = latestDepth(data)
-  let executionGapBps: number | null = null
-  const btcDepth = depth.BTC
-  const on = btcDepth.filter((d) => VENUES[d.venue].region === 'onshore' && d.fillCost1mBps != null)
-  const off = btcDepth.filter((d) => VENUES[d.venue].region === 'offshore' && d.fillCost1mBps != null)
-  if (on.length && off.length) {
-    executionGapBps =
-      Math.min(...on.map((d) => d.fillCost1mBps!)) - Math.min(...off.map((d) => d.fillCost1mBps!))
+  const bestCost = (region: 'onshore' | 'offshore') => {
+    const costs = depth.BTC.filter((d) => VENUES[d.venue].region === region && d.fillCost1mBps != null).map(
+      (d) => d.fillCost1mBps!
+    )
+    return costs.length ? Math.min(...costs) : null
+  }
+  const onCost = bestCost('onshore')
+  const offCost = bestCost('offshore')
+
+  const byVenue = onshoreVolumeByVenue(data, 'ALL').slice(-30)
+  let onTotal = 0
+  let newPerps = 0
+  for (const p of byVenue) {
+    for (const [venue, usd] of Object.entries(p.values)) {
+      onTotal += usd ?? 0
+      if (venue === 'kalshi' || venue === 'kraken_us') newPerps += usd ?? 0
+    }
   }
 
   return {
     asOf: data.meta?.lastIngestDate ?? latest?.date ?? '',
     volumeShare7dPct: latest?.sharePct ?? null,
-    volumeShareDelta30dPct: latest && prior30 ? latest.sharePct - prior30.sharePct : null,
     oiSharePct: latestOi?.sharePct ?? null,
     onshoreOiUsd: latestOi?.onshoreUsd ?? null,
-    fundingDivergencePct: divergence,
-    executionGapBps,
+    usFundingPremiumPct: premium,
+    executionGapBps: onCost != null && offCost != null ? onCost - offCost : null,
+    onshoreCost1mBps: onCost,
+    offshoreCost1mBps: offCost,
+    migration:
+      latest && baseline
+        ? {
+            baselineDate: baseline.date,
+            baselineSharePct: baseline.sharePct,
+            onshoreVolChangePct: pctChange(latest.onshoreUsd, baseline.onshoreUsd),
+            offshoreVolChangePct: pctChange(latest.offshoreUsd, baseline.offshoreUsd),
+          }
+        : null,
+    newPerpShareOfOnshorePct: onTotal > 0 ? (newPerps / onTotal) * 100 : null,
   }
 }
